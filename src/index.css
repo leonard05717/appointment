@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "montserrat-bold";
+  src: url(./assets/fonts/Montserrat-Bold.ttf);
+}
+
+@font-face {
+  font-family: "montserrat-medium";
+  src: url(./assets/fonts/Montserrat-Medium.ttf);
+}
+
+@theme {
+  --font-montserrat-bold: "montserrat-bold";
+  --font-montserrat-medium: "montserrat-medium";
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #printable,
+  #printable * {
+    visibility: visible;
+  }
+
+  #print-hide {
+    visibility: hidden;
+    display: none;
+  }
+
+  #printable {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 0;
+  }
+
+  /* Ensure elements break between pages */
+  .page-break {
+    page-break-before: always;
+  }
+
+  /* Prevent row/element from splitting across pages */
+  .no-page-break {
+    page-break-inside: avoid;
+  }
+
+  /* Force elements to move to a new page if needed */
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  td {
+    page-break-inside: avoid;
+  }
+}
