@@ -3,7 +3,7 @@ import CustomTable, { ColumnProps } from "../../components/CustomTable";
 import PageContainer from "../../components/PageContainer";
 import { UserProps } from "../../types";
 import supabase from "../../supabase";
-import { displayError, displayNotification, displaySuccess } from "../../helpers/methods";
+import { displayConfirmation, displayError, displaySuccess, LoadingClass } from "../../helpers/methods";
 import { Button, Group, LoadingOverlay, PasswordInput, Select, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import CustomModal from "../../components/CustomModal";
@@ -49,41 +49,62 @@ function Users() {
   })
 
   async function handleDeleteUser(data: UserProps) {
-    console.log(data);
-    displayNotification('Note', 'Not Yet Available.')
+    const confirm = await displayConfirmation('Warning', `Are you sure you want to delete '${data.email}'?`)
+    if (!confirm) return;
+    const load = new LoadingClass()
+    load.show("Deleting User...");
+    await supabase.from("users").delete().eq("id", data.id)
+    await supabase.auth.admin.deleteUser(data.auth_id)
+    load.close()
   }
 
   async function submitUserEventHandler(data: UserFormProps) {
     setLoadingUser(true)
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password || '12345678',
-    });
+    if (data.type === 'add') {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password || '12345678',
+      });
 
-    if (authError) {
-      displayError("Registration Error", authError.message);
-      setLoadingUser(false)
-      return;
-    }
+      if (authError) {
+        displayError("Registration Error", authError.message);
+        setLoadingUser(false)
+        return;
+      }
 
-    const { error: userError } = await supabase.from("users").insert([
-      {
+      const { error: userError } = await supabase.from("users").insert([
+        {
+          firstname: data.firstname,
+          lastname: data.lastname,
+          role: data.role,
+          auth_id: authData.user?.id,
+        },
+      ]);
+
+      if (userError) {
+        displayError("Database Error", userError.message);
+        setLoadingUser(false)
+        return;
+      }
+
+      displaySuccess("Success", "Student registered successfully!");
+      closeUserState();
+    } else {
+      const { error: er } = await supabase.from("users").update({
         firstname: data.firstname,
         lastname: data.lastname,
         role: data.role,
-        auth_id: authData.user?.id,
-      },
-    ]);
-
-    if (userError) {
-      displayError("Database Error", userError.message);
-      setLoadingUser(false)
-      return;
+      }).eq("id", data.id)
+      if (er) {
+        displayError("Something Error", er.message);
+        setLoadingUser(false)
+        return
+      }
+      displaySuccess("Success", "Student updated successfully!");
+      closeUserState();
     }
 
-    displaySuccess("Success", "Student registered successfully!");
-    closeUserState();
     setLoadingUser(false)
   }
 
@@ -96,8 +117,7 @@ function Users() {
         .select("*")
         .neq("role", "student");
 
-      const listOfUsers = (await supabase.auth.admin.listUsers()).data.users
-
+      const listOfUsers = (await supabase.auth.admin.listUsers()).data.users;
 
       if (error) {
         displayError("Error", error.message);
@@ -108,7 +128,7 @@ function Users() {
             ...v,
             email: f?.email || ''
           };
-        })
+        }).filter((v) => v.email)
 
         setUsers(mainData || []);
       }
@@ -122,9 +142,14 @@ function Users() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "users" },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "INSERT") {
-            setUsers((prev) => [...prev, payload.new as UserProps]);
+            const payLoad = (payload.new as UserProps)
+            const newUser: UserProps = {
+              ...payLoad,
+              email: (await supabase.auth.admin.listUsers()).data.users.find((v) => v.id === payLoad.auth_id)?.email || ''
+            }
+            setUsers((prev) => [...prev, newUser]);
           } else if (payload.eventType === "UPDATE") {
             setUsers((prev) =>
               prev.map((item) =>
@@ -158,7 +183,7 @@ function Users() {
 
       <LoadingOverlay visible={loadingPage} />
 
-      <CustomModal title="Add User" opened={userState} onClose={closeUserState}>
+      <CustomModal title={userForm.values.type === 'add' ? 'Add User' : 'Edit User'} opened={userState} onClose={closeUserState}>
         <form onSubmit={userForm.onSubmit(submitUserEventHandler)} className="space-y-3">
           <Group grow gap={10}>
             <TextInput maxLength={10} onKeyPress={(event) => {
@@ -188,7 +213,7 @@ function Users() {
           <PasswordInput {...userForm.getInputProps("password")} label="Password (Optional)" placeholder="Enter Password" />
           <div className="flex justify-between">
             <Text size="sm">Default Password: <span className="font-bold">12345678</span></Text>
-            <Button type="submit" loading={loadingUser}>{userForm.values.type === "add" ? "Add Student" : "Update Student"}</Button>
+            <Button type="submit" loading={loadingUser}>{userForm.values.type === "add" ? "Add User" : "Update User"}</Button>
           </div>
         </form>
       </CustomModal>

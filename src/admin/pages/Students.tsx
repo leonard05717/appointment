@@ -9,7 +9,7 @@ import CustomModal from "../../components/CustomModal";
 import { useDisclosure } from "@mantine/hooks";
 import { DefaultSelectProps } from "../../assets/styles";
 import { DateInput } from "@mantine/dates";
-import { generateStudentID, LoadingClass } from "../../helpers/methods";
+import { formatDate, generateStudentID, LoadingClass } from "../../helpers/methods";
 import supabase from "../../supabase";
 import { displayConfirmation, displayError, displaySuccess } from "../../helpers/methods";
 
@@ -37,7 +37,11 @@ function Students() {
     { label: "Student ID", field: "student_id", searchExact: true },
     { label: "First Name", field: "firstname" },
     { label: "Last Name", field: "lastname" },
-    { label: "Birth Day", field: "birthday" },
+    {
+      label: "Birth Day", field: "birthday", format(result) {
+        return formatDate(new Date(result.birthday))
+      },
+    },
     { label: "Gender", field: "gender" },
     { label: "Email", field: "email" },
     { label: "Address", field: "address" },
@@ -60,38 +64,57 @@ function Students() {
 
     setLoadingStudent(true)
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password || '12345678',
-    });
+    if (data.type === 'add') {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password || '12345678',
+      });
 
-    if (authError) {
-      displayError("Registration Error", authError.message);
-      setLoadingStudent(false)
-      return;
-    }
+      if (authError) {
+        displayError("Registration Error", authError.message);
+        setLoadingStudent(false)
+        return;
+      }
 
-    const { error: studentError } = await supabase.from("users").insert([
-      {
+      const { error: studentError } = await supabase.from("users").insert([
+        {
+          student_id: data.student_id,
+          firstname: data.firstname,
+          lastname: data.lastname,
+          gender: data.gender,
+          birthday: data.birthday,
+          address: data.address,
+          role: 'student',
+          auth_id: authData.user?.id,
+        },
+      ]);
+
+      if (studentError) {
+        displayError("Database Error", studentError.message);
+        setLoadingStudent(false)
+        return;
+      }
+
+      displaySuccess("Success", "Student registered successfully!");
+      closeStudentState();
+    } else {
+      const { error: er } = await supabase.from("users").update({
         student_id: data.student_id,
         firstname: data.firstname,
         lastname: data.lastname,
         gender: data.gender,
         birthday: data.birthday,
         address: data.address,
-        role: 'student',
-        auth_id: authData.user?.id,
-      },
-    ]);
-
-    if (studentError) {
-      displayError("Database Error", studentError.message);
-      setLoadingStudent(false)
-      return;
+      }).eq("id", data.id)
+      if (er) {
+        displayError("Something Error", er.message);
+        setLoadingStudent(false)
+        return;
+      }
+      displaySuccess("Success", "Student Update Successfully!");
+      closeStudentState();
     }
 
-    displaySuccess("Success", "Student registered successfully!");
-    closeStudentState();
     setLoadingStudent(false)
   }
 
@@ -111,7 +134,7 @@ function Students() {
       return;
     }
 
-    const { error: userError } = await supabase.auth.admin.deleteUser(student.auth_id, true)
+    const { error: userError } = await supabase.auth.admin.deleteUser(student.auth_id)
 
     if (userError) {
       displayError('User Error', userError.message)
@@ -127,10 +150,21 @@ function Students() {
     async function fetchStudents() {
       setLoadingPage(true);
       const { data, error } = await supabase.from("users").select("*").eq("role", "student");
+      const listOfUsers = (await supabase.auth.admin.listUsers()).data.users;
       if (error) {
         displayError("Error", error.message);
       } else {
-        setStudents(data || []);
+
+        const mainData = data.map((v) => {
+          const f = listOfUsers.find((li) => li.id === v.auth_id)
+          return {
+            ...v,
+            email: f?.email || ''
+          };
+        }).filter((v) => v.email)
+
+        setStudents(mainData || []);
+
       }
       setLoadingPage(false);
     }

@@ -1,4 +1,4 @@
-import { ActionIcon, Button, Container, Divider, Group, PasswordInput, Select, Text, TextInput } from "@mantine/core";
+import { Button, Checkbox, Container, Divider, Group, PasswordInput, Select, Text, TextInput } from "@mantine/core";
 import { NavLink, useNavigate } from "react-router-dom";
 import { DefaultSelectProps } from "../assets/styles";
 import { DateInput } from '@mantine/dates';
@@ -6,13 +6,12 @@ import { useForm } from '@mantine/form';
 import supabase from "../supabase";
 import { displayError, displaySuccess, generateStudentID } from "../helpers/methods";
 import { useState } from "react";
-import { IconDice } from "@tabler/icons-react";
 
 interface RegistrationProps {
   firstname: string;
   lastname: string;
   gender: string;
-  birthday: string;
+  birthday: Date | null;
   email: string;
   student_id: string;
   address: string;
@@ -22,6 +21,7 @@ interface RegistrationProps {
 function Registration() {
 
   const navigate = useNavigate()
+  const [isNewStudent, setIsNewStudent] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const userForm = useForm<RegistrationProps>({
@@ -30,7 +30,7 @@ function Registration() {
       firstname: "",
       lastname: "",
       gender: "",
-      birthday: '',
+      birthday: null,
       email: "",
       student_id: "",
       address: "",
@@ -38,8 +38,8 @@ function Registration() {
     },
     validate: {
       password(value) {
-        if (value.length < 6) {
-          return 'The password should be at least 6 characters long.'
+        if (value.length < 8) {
+          return 'The password should be at least 8 characters long.'
         }
         return null;
       },
@@ -67,7 +67,7 @@ function Registration() {
       gender: user.gender,
       address: user.address,
       birthday: user.birthday,
-      student_id: user.student_id,
+      student_id: isNewStudent ? generateStudentID() : user.student_id,
       auth_id: data.user?.id,
       role: 'student'
     })
@@ -113,21 +113,20 @@ function Registration() {
                 value: 'female'
               }
             ]} />
-          <DateInput maxDate={new Date(new Date().getFullYear() - 5, 0, 0)} minDate={new Date(1900, 1, 1)} required {...userForm.getInputProps('birthday')} label="Date of Birth" placeholder="Enter Date of Birth" />
+          <DateInput defaultDate={new Date(2000, 1, 1)} maxDate={new Date(new Date().getFullYear() - 5, 0, 0)} minDate={new Date(1900, 1, 1)} required {...userForm.getInputProps('birthday')} label="Date of Birth" placeholder="Enter Date of Birth" />
         </Group>
         <Group grow justify="end">
-          <TextInput maxLength={9} rightSection={<ActionIcon onClick={() => {
-            userForm.setFieldValue('student_id', generateStudentID())
-          }} color="dark">
-            <IconDice size={16} />
-          </ActionIcon>} required {...userForm.getInputProps('student_id')} label="Student ID" placeholder="Enter Student ID" />
+          {!isNewStudent && (
+            <TextInput maxLength={9} required {...userForm.getInputProps('student_id')} label="Student ID" placeholder="Enter Student ID" />
+          )}
           <TextInput  {...userForm.getInputProps('address')} label="Address (Optional)" placeholder="Enter Address" />
         </Group>
         <Group grow align="start">
-          <TextInput required {...userForm.getInputProps('email')} label="Email" placeholder="Enter Email" />
+          <TextInput required {...userForm.getInputProps('email')} label="Email" placeholder="Enter Email" type="email" />
           <PasswordInput required {...userForm.getInputProps('password')} label="Password" placeholder="Enter Password" />
         </Group>
-        <div className="text-right">
+        <div className="flex items-start justify-between">
+          <Checkbox checked={isNewStudent} onChange={(e) => setIsNewStudent(e.target.checked)} label="New Student" />
           <Button loading={loading} type="submit" mt={7}>Submit Registration</Button>
         </div>
       </form>

@@ -45,8 +45,18 @@ interface ForgotPasswordFormProps {
   email: string;
 }
 
+interface EditAppointmentProps {
+  id: number;
+  section_id: string | null;
+  reasons: string[];
+  note: string;
+  appointment_date: Date | null;
+  appointment_time: string;
+}
+
 function Home() {
   const navigate = useNavigate()
+  const [loadingEditAppointment, setLoadingEditAppointment] = useState(false)
   const [loadingForgotPassword, setLoadingForgotPassword] = useState(false)
   const [appointmentTime, setAppointmentTime] = useState<AppointmentTimeProps[]>([]);
   const [disabledDates, setDisabledDates] = useState<DisabledDateProps[]>([])
@@ -67,7 +77,7 @@ function Home() {
   const [active, setActive] = useState(0);
   const [allAppointments, setAllAppointments] = useState<AppointmentProps[]>([])
   const [forgotPasswordState, { open: openForgotPasswordState, close: closeForgotPasswordState }] = useDisclosure(false)
-
+  const [editAppointmentState, { open: openEditAppointmentState, close: closeEditAppointmentState }] = useDisclosure(false)
 
   const [popOverState, setPopOverState] = useState(false)
   const ref = useClickOutside(() => setPopOverState(false));
@@ -340,14 +350,15 @@ function Home() {
   }
 
   async function viewDetailsEventHandler(appointment: AppointmentProps) {
-    console.log(appointment)
+    const sec = sections.find((v) => v.id.toString() === appointment.section_id.toString())
+    const s = sec && `${sec.course} ${sec.year_level[0]}${sec.section}`
     closeAppointmentState()
     modals.open({
       onClose() {
         openAppointmentState()
       },
       size: 'lg',
-      title: <Text fw="bold">Code: {appointment.qrcode}</Text>,
+      title: <Text fw="bold">Code: {appointment.qrcode} ({s})</Text>,
       children: (
         <div>
           <Text size="sm" mb={3}>Reasons:</Text>
@@ -386,6 +397,33 @@ function Home() {
     forgotPasswordForm.reset()
     displaySuccess('Email Sent', 'Email Sent Successfully!')
     setLoadingForgotPassword(false)
+  }
+
+  const editAppointmentForm = useForm<EditAppointmentProps>({
+    mode: 'controlled',
+    initialValues: {
+      id: 0,
+      section_id: null,
+      reasons: [],
+      note: "",
+      appointment_date: null,
+      appointment_time: ""
+    }
+  })
+
+  async function submitEditAppointment(data: EditAppointmentProps) {
+    setLoadingEditAppointment(true)
+    const { error } = await supabase.from("appointments").update(data).eq("id", data.id);
+    if (error) {
+      displayError('Something Error', error.message)
+      setLoadingEditAppointment(false)
+      return;
+    }
+    displaySuccess('Success', 'Update Appointment Successfully!')
+    closeEditAppointmentState()
+    openAppointmentState()
+    editAppointmentForm.reset()
+    setLoadingEditAppointment(false)
   }
 
   useEffect(() => {
@@ -536,6 +574,90 @@ function Home() {
         </form>
       </CustomModal>
 
+      <CustomModal title="Edit Appointment" opened={editAppointmentState} onClose={() => {
+        closeEditAppointmentState()
+        openAppointmentState()
+      }}>
+        <form className="space-y-2" onSubmit={editAppointmentForm.onSubmit(submitEditAppointment)}>
+          <Select {...editAppointmentForm.getInputProps('section_id')} {...DefaultSelectProps} placeholder="Select section" label="Section" data={sections.map((v) => ({
+            label: `${v.course} ${v.year_level[0]}${v.section}`,
+            value: v.id.toString()
+          }))} />
+          <CheckboxCard>
+            <CheckboxGroup {...editAppointmentForm.getInputProps('reasons')}>
+              <div className="space-y-2 px-4 py-3">
+                <Text mb={10} ff="montserrat-bold">Reason of Appointment</Text>
+                {reasons.map((value, i) => {
+                  return (
+                    <Checkbox
+                      key={i}
+                      label={value.reason}
+                      value={value.reason}
+                    />
+                  )
+                })}
+              </div>
+            </CheckboxGroup>
+          </CheckboxCard>
+          <Textarea {...editAppointmentForm.getInputProps('note')} rows={3} label="Note or Message (Optional)" placeholder="Enter your message or note" />
+          <div className="flex justify-center">
+            <DatePicker
+              getDayProps={(_) => ({
+                renderDay(data) {
+                  const dateString = data.toDateString()
+                  const fn = disabledDates.find((dd) => new Date(dd.date).toDateString() === dateString);
+                  const pn = pendingAppointments.find((dd) => new Date(dd.appointment_date).toDateString() === dateString);
+
+                  if (fn) {
+                    return (
+                      <Tooltip withArrow label={fn.description || 'No Description'}>
+                        <div>{data.getDate()}</div>
+                      </Tooltip>
+                    )
+                  }
+
+                  if (pn) {
+                    return (
+                      <Tooltip withArrow label="You already have an appointment here.">
+                        <div className="text-blue-500">{data.getDate()}</div>
+                      </Tooltip>
+                    )
+                  }
+
+                  return <div>{data.getDate()}</div>
+                },
+              })}
+              excludeDate={(date) => {
+                const dateString = date.toDateString();
+                const pn = pendingAppointments.find((dd) => new Date(dd.appointment_date).toDateString() === dateString);
+                return disabledDates.some((v) => new Date(v.date).toDateString() == dateString) || date.getDay() === 0 || !!pn
+              }}
+              {...editAppointmentForm.getInputProps('appointment_date')}
+              size="md"
+              minDate={new Date()}
+              maxDate={new Date(new Date().setMonth(new Date().getMonth() + 3))}
+            />
+          </div>
+          <Select
+            {...DefaultSelectProps}
+            disabled={!editAppointmentForm.values.appointment_date}
+            {...editAppointmentForm.getInputProps('appointment_time')}
+            placeholder="Select time here..."
+            label="Time of Appointment"
+            data={appointmentTime.map((tm) => {
+              const ap = filteredAppointment.filter((v) => v.appointment_time === tm.time);
+              const count = tm.max - ap.length;
+              return {
+                label: `${tm.time} (${count})`,
+                value: tm.time,
+                disabled: count === 0
+              }
+            })}
+          />
+          <Button fullWidth mt={10} type="submit" loading={loadingEditAppointment}>Save Changes</Button>
+        </form>
+      </CustomModal>
+
       <CustomModal size={1000} title="Appointment History" opened={appointmentState} onClose={closeAppointmentState}>
         <div className="w-full overflow-x-scroll">
           <Table withColumnBorders withRowBorders>
@@ -575,6 +697,20 @@ function Home() {
                         </Menu.Target>
                         <Menu.Dropdown w={200}>
                           <Menu.Item onClick={() => viewDetailsEventHandler(row)}>View Details</Menu.Item>
+                          <Menu.Item disabled={row.status.toLowerCase() !== 'pending'} onClick={() => {
+
+                            editAppointmentForm.setValues({
+                              id: row.id,
+                              section_id: row.section_id.toString(),
+                              reasons: row.reasons,
+                              note: row.note,
+                              appointment_date: row.appointment_date,
+                              appointment_time: row.appointment_time
+                            })
+
+                            openEditAppointmentState()
+                            closeAppointmentState()
+                          }}>Edit Appointment</Menu.Item>
                           <Menu.Item disabled={row.status.toLowerCase() !== 'pending'} onClick={async () => {
                             const conf = await displayConfirmation('Confirmation', 'Are you sure you want to cancel this appointment?')
                             if (!conf) return;
