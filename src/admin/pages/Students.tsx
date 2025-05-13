@@ -3,18 +3,18 @@ import { useForm } from "@mantine/form";
 import CustomTable, { ColumnProps } from "../../components/CustomTable";
 import PageContainer from "../../components/PageContainer";
 import { UserProps } from "../../types";
-import { ActionIcon, Button, Divider, Group, LoadingOverlay, PasswordInput, Select, Text, TextInput, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, LoadingOverlay, PasswordInput, Select, Text, TextInput, Tooltip } from "@mantine/core";
 import { IconDice, IconPlus, IconSearch } from "@tabler/icons-react";
 import CustomModal from "../../components/CustomModal";
 import { useDisclosure } from "@mantine/hooks";
 import { DefaultSelectProps } from "../../assets/styles";
 import { DateInput } from "@mantine/dates";
-import { formatDate, generateStudentID, LoadingClass, toProper } from "../../helpers/methods";
+import { formatDate, generateStudentID, LoadingClass } from "../../helpers/methods";
 import supabase from "../../supabase";
-import { displayError, displaySuccess } from "../../helpers/methods";
+import { displayConfirmation, displayError, displaySuccess } from "../../helpers/methods";
 
 interface StudentFormProps {
-  id: number;
+  id?: number;
   firstname: string;
   lastname: string;
   gender?: string;
@@ -22,7 +22,6 @@ interface StudentFormProps {
   password: string;
   address: string;
   student_id: string;
-  status?: string;
   birthday?: Date;
   type: "add" | "edit";
 }
@@ -46,20 +45,11 @@ function Students() {
     { label: "Gender", field: "gender" },
     { label: "Email", field: "email" },
     { label: "Address", field: "address" },
-    {
-      label: 'Status',
-      field: 'status',
-      format(result) {
-        if (result.status === 'active') return <Text c="green">{toProper(result.status)}</Text>
-        return <Text c="red">{toProper(result.status)}</Text>
-      },
-    }
   ];
 
   const studentForm = useForm<StudentFormProps>({
     mode: "controlled",
     initialValues: {
-      id: 0,
       firstname: "",
       lastname: "",
       email: "",
@@ -128,43 +118,33 @@ function Students() {
     setLoadingStudent(false)
   }
 
-  async function updateStatus(student_id: number, status: string) {
+  async function handleDeleteStudent(student: UserProps) {
+
+    const confirmDelete = await displayConfirmation("Confirmation", `Are you sure you want to delete ${student.firstname} ${student.lastname}?`);
+    if (!confirmDelete) return;
+
     const load = new LoadingClass()
-    load.show("Updating Status...")
-    await supabase.from("users").update({
-      status: status
-    }).eq("id", student_id)
+
+    load.show('Deleting User...')
+
+    const { error } = await supabase.from("users").delete().eq("id", student.id);
+    if (error) {
+      displayError("Error", error.message);
+      load.close()
+      return;
+    }
+
+    const { error: userError } = await supabase.auth.admin.deleteUser(student.auth_id)
+
+    if (userError) {
+      displayError('User Error', userError.message)
+      load.close()
+      return;
+    }
+
+    displaySuccess("Success", "Student deleted successfully!");
     load.close()
-    closeStudentState()
   }
-
-  // async function handleDeleteStudent(student: UserProps) {
-
-  //   const confirmDelete = await displayConfirmation("Confirmation", `Are you sure you want to delete ${student.firstname} ${student.lastname}?`);
-  //   if (!confirmDelete) return;
-
-  //   const load = new LoadingClass()
-
-  //   load.show('Deleting User...')
-
-  //   const { error } = await supabase.from("users").delete().eq("id", student.id);
-  //   if (error) {
-  //     displayError("Error", error.message);
-  //     load.close()
-  //     return;
-  //   }
-
-  //   const { error: userError } = await supabase.auth.admin.deleteUser(student.auth_id)
-
-  //   if (userError) {
-  //     displayError('User Error', userError.message)
-  //     load.close()
-  //     return;
-  //   }
-
-  //   displaySuccess("Success", "Student deleted successfully!");
-  //   load.close()
-  // }
 
   useEffect(() => {
     async function fetchStudents() {
@@ -254,26 +234,15 @@ function Students() {
           <TextInput placeholder="Enter Address" {...studentForm.getInputProps("address")} label="Address (Optional)" />
           <TextInput maxLength={9} placeholder="Enter Student ID" {...studentForm.getInputProps("student_id")} label="Student ID" required rightSection={<Tooltip label="Generate Student ID"><ActionIcon onClick={() => studentForm.setFieldValue("student_id", generateStudentID())}><IconDice size={16} /></ActionIcon></Tooltip>} />
           <Group grow>
-            <TextInput readOnly placeholder="Enter Email Address" {...studentForm.getInputProps("email")} label="Email Address" type="email" required />
+            <TextInput placeholder="Enter Email Address" {...studentForm.getInputProps("email")} label="Email Address" type="email" required />
             <PasswordInput {...studentForm.getInputProps("password")} label="Password (Optional)" placeholder="Enter Password" />
           </Group>
           <div className="flex justify-between">
             <Text size="sm">Default Password: <span className="font-bold">12345678</span></Text>
             <Button type="submit" loading={loadingStudent}>{studentForm.values.type === "add" ? "Add Student" : "Update Student"}</Button>
           </div>
-          {studentForm.values.type === 'edit' && (
-            <div>
-              <Divider mb={13} />
-              {studentForm.values.status === 'active' ? (
-                <Button onClick={() => updateStatus(studentForm.values.id, "inactive")} color="red" fullWidth>Set to Inactive</Button>
-              ) : (
-                <Button onClick={() => updateStatus(studentForm.values.id, "active")} color="green" fullWidth>Set to Active</Button>
-              )}
-            </div>
-          )}
         </form>
       </CustomModal>
-
       <div className="md:w-full w-[calc(100vw-25px)]">
         <CustomTable
           withNumbering
@@ -288,6 +257,7 @@ function Students() {
             });
             openStudentState();
           }}
+          onDelete={handleDeleteStudent}
         />
       </div>
     </PageContainer>
