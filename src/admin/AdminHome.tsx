@@ -11,8 +11,6 @@ import { useDisclosure } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import Drawer from "./components/Drawer";
 
-
-
 interface AccountFormProps {
   id: number;
   firstname: string;
