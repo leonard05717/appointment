@@ -10,6 +10,7 @@ import CustomModal from "../../components/CustomModal";
 import { useDisclosure } from "@mantine/hooks";
 import { DatePickerInput } from "@mantine/dates";
 import { DefaultSelectProps } from "../../assets/styles";
+import { Link } from "react-router-dom";
 
 interface QRCodeFormProps {
   qrcode: string;
@@ -188,7 +189,12 @@ function Scan() {
   const filteredAppointment = selectedDate ? allAppointments.filter((ap) => new Date(ap.appointment_date).toDateString() === new Date(selectedDate).toDateString()) : []
 
   return (
-    <PageContainer title="Scan QR Code" rightSection={<Button size="xs" onClick={resetEventHandler}>Reset</Button>}>
+    <PageContainer title="Scan QR Code" rightSection={(
+      <div className="flex items-center gap-x-4 hover:underline">
+        <Link to="/queue">Appointment Queue</Link>
+        <Button size="xs" onClick={resetEventHandler}>Reset</Button>
+      </div>
+    )}>
 
       <LoadingOverlay visible={loadingPage} />
 

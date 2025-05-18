@@ -198,6 +198,18 @@ export function generateAcronym(phrase: string) {
     .join("");
 }
 
+export function formatDateString(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const formattedDate = `${monthNames[month - 1]} ${day}, ${year}`;
+  return formattedDate;
+}
+
 export function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
     year: "numeric",

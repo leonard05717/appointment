@@ -10,6 +10,7 @@ import Students from "./admin/pages/Students";
 import Scan from "./admin/pages/Scan";
 import Settings from "./admin/pages/Settings";
 import ForgotPassword from "./pages/ForgotPassword";
+import Queue from "./pages/Queue";
 
 const routers = createBrowserRouter([
   {
@@ -19,6 +20,10 @@ const routers = createBrowserRouter([
   {
     path: 'registration',
     element: <Registration />
+  },
+  {
+    path: 'queue',
+    element: <Queue />
   },
   {
     path: 'admin',

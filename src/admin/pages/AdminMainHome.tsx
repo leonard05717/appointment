@@ -6,7 +6,7 @@ import supabase from "../../supabase";
 import { tmpStatusList } from "../../tmp_data";
 import { DefaultSelectProps } from "../../assets/styles";
 import { DatePickerInput } from "@mantine/dates";
-import { formatDate, formatDateAndTime, toProper } from "../../helpers/methods";
+import { formatDate, formatDateAndTime, formatDateString, toProper } from "../../helpers/methods";
 import { IconDotsVertical, IconSearch } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 
@@ -16,53 +16,11 @@ interface AppointmentWithStudent extends AppointmentProps {
 }
 
 function AdminMainHome() {
-  // const [message, setMessage] = useState("")
-  // const [messageState, { open: openMessageState, close: closeMessageState }] = useDisclosure(false)
   const [search, setSearch] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   const [appointments, setAppointments] = useState<AppointmentWithStudent[]>([]);
   const [loadingPage, setLoadingPage] = useState(true)
-  // const [loadingConfirm, setLoadingConfirm] = useState(false)
-  // const [status, setStatus] = useState("")
-  // const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithStudent | null>(null)
-
-  // async function submitMessageEventHandler() {
-  //   if (!selectedAppointment) return;
-  //   const appointment = selectedAppointment;
-  //   setLoadingConfirm(true)
-
-  //   const auth_id = (await supabase.auth.getSession()).data.session?.user.id;
-
-  //   if (!auth_id) return;
-
-  //   const user = (await supabase.from("users").select("*").eq("auth_id", auth_id).single()).data;
-  //   const currentDate = new Date()
-
-  //   await supabase.from('appointments').update({
-  //     status: status,
-  //     staff_name: user ? toProper(`${user.firstname} ${user.lastname}`) : null,
-  //     message: message,
-  //     updated_at: currentDate
-  //   }).eq("id", appointment.id)
-
-  //   setAppointments((curr) => curr.map((app) => {
-  //     if (app.id === appointment.id) {
-  //       return {
-  //         ...app,
-  //         status: status,
-  //         staff_name: user ? toProper(`${user.firstname} ${user.lastname}`) : null,
-  //         message: message,
-  //         updated_at: currentDate
-  //       }
-  //     }
-  //     return app;
-  //   }))
-
-  //   setLoadingConfirm(false)
-  //   setMessage("")
-  //   closeMessageState()
-  // }
 
   async function viewDetailsEventHandler(appointment: AppointmentWithStudent) {
     const studentName = toProper(`${appointment.student.firstname} ${appointment.student.lastname}`)
@@ -94,12 +52,6 @@ function AdminMainHome() {
       )
     })
   }
-
-  // async function statusEventHandler(appointment: AppointmentWithStudent, value: string | null) {
-  //   setStatus(value || "")
-  //   setSelectedAppointment(appointment)
-  //   openMessageState()
-  // }
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -133,8 +85,9 @@ function AdminMainHome() {
   }, []);
 
   const appointments_ = appointments.filter((v) => {
+    // basta here na me sa date
     if (!selectedDate) return true;
-    return new Date(v.appointment_date).toDateString() === new Date(selectedDate).toDateString()
+    return formatDateString(v.appointment_date?.toString() || '2025-05-19') === '2025-05-19'
   })
     .filter((v) => {
       if (!selectedStatus) return true;
@@ -150,22 +103,6 @@ function AdminMainHome() {
       </div>)}>
 
       <LoadingOverlay visible={loadingPage} />
-
-      {/* <CustomModal opened={messageState} title="Confirmation" onClose={closeMessageState}>
-        <div>
-          <Text mb={5}>Are you sure you want to mark this as <span className="text-blue-500 ">"{status}"</span>?</Text>
-          <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} label="Message (Optional)" placeholder="You can leave a message here." />
-          <div className="flex justify-end">
-            <ButtonGroup mt={10}>
-              <Button color="red" onClick={() => {
-                setMessage("");
-                closeMessageState()
-              }}>Cancel</Button>
-              <Button loading={loadingConfirm} color="dark" onClick={submitMessageEventHandler}>Okay</Button>
-            </ButtonGroup>
-          </div>
-        </div>
-      </CustomModal> */}
 
       <div className="w-[calc(100vw-25px)] md:w-full overflow-x-scroll">
         <Table striped highlightOnHover withColumnBorders>
@@ -215,11 +152,10 @@ function AdminMainHome() {
                     </List>
                   </Table.Td>
                   <Table.Td>{appointment.note || '-'}</Table.Td>
-                  <Table.Td>{appointment.appointment_date ? formatDate(new Date(appointment.appointment_date)) : '-'}</Table.Td>
+                  <Table.Td>{appointment.appointment_date ? formatDateString(appointment.appointment_date.toString()) : '-'}</Table.Td>
                   <Table.Td>{appointment.appointment_time || '-'}</Table.Td>
                   <Table.Td>
                     {appointment.status.toUpperCase() || '-'}
-                    {/* <Select onChange={(v) => statusEventHandler(appointment, v)} value={appointment.status.toLowerCase()} {...DefaultSelectProps} clearable={false} w={120} placeholder="Mark as" data={tmpStatusList} /> */}
                   </Table.Td>
                   <Table.Td>
                     <Menu withArrow shadow="lg">
