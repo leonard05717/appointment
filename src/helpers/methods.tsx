@@ -19,11 +19,7 @@ export const MONTHS = [
   "December",
 ];
 
-export function displayError(
-  title: string,
-  message: string,
-  position?: any
-) {
+export function displayError(title: string, message: string, position?: any) {
   notifications.clean();
   notifications.cleanQueue();
   notifications.show({
@@ -114,7 +110,7 @@ export function displayNotification(
 export async function displayLoading(message = "Loading...") {
   notifications.show({
     loading: true,
-    position: 'top-center',
+    position: "top-center",
     message: message,
     autoClose: false,
     withCloseButton: false,
@@ -202,8 +198,18 @@ export function formatDateString(dateStr: string): string {
   const [year, month, day] = dateStr.split("-").map(Number);
 
   const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const formattedDate = `${monthNames[month - 1]} ${day}, ${year}`;
@@ -226,19 +232,27 @@ export function formatTimeV2(date: Date): string {
   });
 }
 
+export function formatDateToAppointmentDate(date: Date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${year}-${month}-${day}`;
+}
+
 export function formatTime(timeString?: string): string {
-  if (!timeString) return ""
+  if (!timeString) return "";
   const [hour, minute] = timeString.split(":").map(Number);
   const period = hour >= 12 ? "PM" : "AM";
-  const formattedHour = (hour % 12 || 12).toString().padStart(2, "0")
+  const formattedHour = (hour % 12 || 12).toString().padStart(2, "0");
   const formattedMinute = minute.toString().padStart(2, "0"); // Ensure two digits
 
   return `${formattedHour}:${formattedMinute} ${period}`;
 }
 
 export function generateRandomString(length = 10) {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
   for (let i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
@@ -262,18 +276,18 @@ export class LoadingClass {
   show(message?: string) {
     notifications.show({
       loading: true,
-      position: 'top-center',
-      message: message || 'Loading...',
+      position: "top-center",
+      message: message || "Loading...",
       autoClose: false,
       withCloseButton: false,
       style: {
-        border: '1px solid #0005',
-        boxShadow: '1px 2px 5px #0005'
-      }
+        border: "1px solid #0005",
+        boxShadow: "1px 2px 5px #0005",
+      },
     });
   }
   close() {
-    notifications.clean()
-    notifications.cleanQueue()
+    notifications.clean();
+    notifications.cleanQueue();
   }
 }

@@ -33,7 +33,7 @@ export interface AppointmentProps {
   qrcode: string;
   created_at: Date;
   status: string;
-  appointment_date: Date;
+  appointment_date: string;
   appointment_time: string;
   updated_at: Date;
 }
