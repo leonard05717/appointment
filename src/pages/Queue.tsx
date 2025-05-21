@@ -3,7 +3,13 @@ import supabase from "../supabase";
 import { AppointmentProps, UserProps } from "../types";
 import { tmpTimeSelection } from "../tmp_data";
 import { LoadingOverlay, Text } from "@mantine/core";
-import { formatDateToAppointmentDate, toProper } from "../helpers/methods";
+import {
+  formatDateAndTime,
+  formatDateToAppointmentDate,
+  toProper,
+} from "../helpers/methods";
+import { useInterval } from "@mantine/hooks";
+import { Link } from "react-router-dom";
 
 type AppointmentDataProps = AppointmentProps & {
   student: UserProps;
@@ -12,6 +18,7 @@ type AppointmentDataProps = AppointmentProps & {
 function Queue() {
   const [appointments, setAppointments] = useState<AppointmentDataProps[]>([]);
   const [loadingPage, setLoadingPage] = useState(true);
+  const [dateAndTime, setDateAndTime] = useState("-");
 
   async function fetch() {
     setLoadingPage(true);
@@ -40,11 +47,9 @@ function Queue() {
                   item.id === payload.new.id
                     ? {
                         ...item,
-                        appointment_time: payload.new.appointment_time,
                         status: payload.new.status,
                       }
                     : item;
-                console.log(newData);
                 return newData;
               })
             );
@@ -58,17 +63,38 @@ function Queue() {
     };
   }, []);
 
+  const interval = useInterval(() => {
+    setDateAndTime(formatDateAndTime(new Date(), "|"));
+  }, 1000);
+
+  useEffect(() => {
+    interval.start();
+    return interval.stop;
+  }, []);
+
   // useEffect(() => {
-  //   console.log(appointments);
-  // }, [appointments]);
+  //   const interval = window.setInterval(() => {
+  //     console.log("run");
+  //     setDateAndTime(formatDateAndTime(new Date()));
+  //   }, 1000);
+  //   return () => {
+  //     window.clearInterval(interval);
+  //   };
+  // }, []);
 
   return (
     <div className="relative w-full h-screen">
       <LoadingOverlay visible={loadingPage} />
 
       <div className="w-full h-16 px-8 border-b bg-[#222] text-white flex items-center justify-between">
-        <Text ff="montserrat-bold" size="xl">
-          Attendance Queue
+        <Link
+          to="/admin/scan"
+          className="hover:underline text-xl font-montserrat-bold cursor-pointer"
+        >
+          Appointment Queue
+        </Link>
+        <Text ff="montserrat-bold" size="lg">
+          {dateAndTime}
         </Text>
       </div>
 
@@ -91,8 +117,9 @@ function Queue() {
               <div className="py-5">
                 {appointments
                   .filter(
-                    (v) => v.appointment_time === time
-                    // v.status.toLowerCase() === 'pending'
+                    (v) =>
+                      v.appointment_time === time &&
+                      v.status.toLowerCase() === "pending"
                   )
                   .map((app) => {
                     const fullname = toProper(
@@ -100,7 +127,14 @@ function Queue() {
                     );
                     return (
                       <div key={app.id}>
-                        <Text size="lg" ff="montserrat-bold" ta="center">
+                        <Text
+                          size="xl"
+                          style={{
+                            textTransform: "uppercase",
+                          }}
+                          ff="montserrat-bold"
+                          ta="center"
+                        >
                           {fullname}
                         </Text>
                       </div>

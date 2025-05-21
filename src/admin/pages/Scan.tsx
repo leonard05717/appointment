@@ -199,7 +199,7 @@ function Scan() {
             ? toProper(`${user.firstname} ${user.lastname}`)
             : null,
           message: message,
-          appointment_time: selectedTime,
+          appointment_time: data.appointment_time,
         })
         .eq("id", data.id);
 

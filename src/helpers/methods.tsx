@@ -259,17 +259,21 @@ export function generateRandomString(length = 10) {
   return result;
 }
 
-export const formatDateAndTime = (date: string | Date): string => {
-  const options: Intl.DateTimeFormatOptions = {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  };
-
-  return new Intl.DateTimeFormat("en-US", options).format(new Date(date));
+export const formatDateAndTime = (
+  date: string | Date,
+  separator: string = "at"
+): string => {
+  const d = new Date(date);
+  const day = d.getDate().toString().padStart(2, "0");
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+  let hour = d.getHours();
+  const min = d.getMinutes().toString().padStart(2, "0");
+  const sec = d.getSeconds().toString().padStart(2, "0");
+  const ampm = hour >= 12 ? "PM" : "AM";
+  hour = hour % 12 || 12;
+  const hourStr = hour.toString().padStart(2, "0");
+  return `${MONTHS[month]} ${day}, ${year} ${separator} ${hourStr}:${min}:${sec} ${ampm}`;
 };
 
 export class LoadingClass {
