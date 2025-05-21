@@ -72,16 +72,6 @@ function Queue() {
     return interval.stop;
   }, []);
 
-  // useEffect(() => {
-  //   const interval = window.setInterval(() => {
-  //     console.log("run");
-  //     setDateAndTime(formatDateAndTime(new Date()));
-  //   }, 1000);
-  //   return () => {
-  //     window.clearInterval(interval);
-  //   };
-  // }, []);
-
   return (
     <div className="relative w-full h-screen">
       <LoadingOverlay visible={loadingPage} />
