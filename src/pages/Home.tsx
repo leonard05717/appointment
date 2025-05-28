@@ -200,6 +200,16 @@ function Home() {
       .select("*")
       .eq("auth_id", authData.user.id)
       .single();
+    setLoadingLogin(true);
+    if (!data.status) {
+      await supabase.auth.signOut();
+      displayError(
+        "Account is Disabled, Please enter you user id and password first.",
+        ""
+      );
+      setLoadingLogin(false);
+      return;
+    }
 
     const usr: UserProps = {
       ...data,
@@ -210,9 +220,7 @@ function Home() {
       navigate("admin/appointment");
       return;
     }
-
     await fetch();
-
     displaySuccess("Success", "Login Account Successfully!");
     setAccount(usr);
     setLoadingLogin(false);

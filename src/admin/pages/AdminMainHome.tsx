@@ -105,7 +105,6 @@ function AdminMainHome() {
         setLoadingPage(false);
         return;
       }
-      // console.log(data.filter((v) => v.appointment_date === "2025-05-20"));
       setLoadingPage(false);
       setAppointments(data || []);
     };
@@ -131,9 +130,6 @@ function AdminMainHome() {
   const appointments_ = appointments
     .filter((v) => {
       if (!selectedDate) return true;
-      console.log(
-        `${v.appointment_date} = ${formatDateToAppointmentDate(selectedDate)}`
-      );
       return v.appointment_date === formatDateToAppointmentDate(selectedDate);
     })
     .filter((v) => {

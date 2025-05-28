@@ -19,6 +19,7 @@ export interface UserProps {
   birthday: Date;
   role: RoleProps;
   auth_id: string;
+  status: boolean;
   created_at: Date;
 }
 
